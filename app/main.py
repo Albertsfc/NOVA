@@ -57,3 +57,4 @@ if frontend_dir.exists():
     logging.info(f"[FastAPI Static] Pasta frontend montada com sucesso em /static. Origem: {frontend_dir}")
 else:
     logging.warning(f"[FastAPI Static] Diretório frontend não encontrado no caminho {frontend_dir}. Estáticos não montados.")
+

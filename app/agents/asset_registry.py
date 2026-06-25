@@ -83,3 +83,4 @@ def run_asset_registry(state: Dict[str, Any]) -> Dict[str, Any]:
         state["errors"].append("Nenhum ativo ou oportunidade foi fornecido para análise.")
         
     return state
+

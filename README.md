@@ -247,3 +247,4 @@ Areas where contributions are most needed:
 ## License
 
 MIT License — free to use, adapt, and redistribute.
+

@@ -105,3 +105,4 @@ def np_log_returns(prices) -> list:
     if len(prices_arr) < 2:
         return []
     return np.log(prices_arr[1:] / prices_arr[:-1])
+

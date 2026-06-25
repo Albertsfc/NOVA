@@ -179,3 +179,4 @@ def run_nova_comparison_pipeline(
             logging.error(f"Falha ao persistir no banco, continuando resposta: {e}")
             
     return final_state
+

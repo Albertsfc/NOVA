@@ -179,3 +179,4 @@ Com base no algoritmo de decisão multicritério (MCDA) e em 1.000 iterações d
 """
 
     return markdown_report
+

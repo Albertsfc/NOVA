@@ -108,3 +108,4 @@ def test_api_crud_workflow():
     # Confirma que foi deletado
     get_res_deleted = client.get(f"/api/assets/{asset_id}")
     assert get_res_deleted.status_code == 404
+

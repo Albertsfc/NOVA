@@ -11,3 +11,4 @@ api_router.include_router(assets_router)
 api_router.include_router(analysis_router)
 api_router.include_router(compare_router)
 api_router.include_router(system_router)
+
