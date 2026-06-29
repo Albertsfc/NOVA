@@ -88,4 +88,3 @@ def run_fixed_income_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         logging.info(f"[Fixed Income & Equity Agent] Ativo {asset['name']} calculado: Nominal={nominal_rate*100:.2f}%, Real Líquido={real_return*100:.2f}%")
         
     return state
-
