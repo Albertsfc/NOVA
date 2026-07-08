@@ -118,4 +118,3 @@ def run_comparative_decision_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     logging.info(f"[Comparative Decision Agent] Matriz finalizada. Vencedor: '{scores[0]['name']}' com score {scores[0]['final_score']}.")
     
     return state
-
