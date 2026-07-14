@@ -1,8 +1,9 @@
 import logging
 from typing import Dict, Any, List
 
-def run_comparative_decision_agent(state: dict) -> dict:
+def run_comparative_decision_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
+    Corporate Standard Docstring: run_comparative_decision_agent
     Comparative Decision Agent.
     Executa uma análise de decisão multicritério (MCDA) comparando todos os ativos avaliados.
     Ajusta dinamicamente os pesos da matriz com base nas intenções detectadas no texto da consulta do usuário.

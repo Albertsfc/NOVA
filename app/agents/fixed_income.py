@@ -1,9 +1,11 @@
 import logging
+from typing import Dict, Any
 from app.services.market_data import get_ticker_info, get_market_rates
 from app.services.finance_math import calculate_real_return
 
-def run_fixed_income_agent(state: dict) -> dict:
+def run_fixed_income_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
+    Corporate Standard Docstring: run_fixed_income_agent
     Fixed Income & Equity Agent.
     Calcula retorno líquido real para renda fixa e ações.
     Busca cotações online via yfinance (se ticker especificado) e desconta imposto de renda regressivo

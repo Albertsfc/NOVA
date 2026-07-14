@@ -1,9 +1,11 @@
 import logging
+from typing import Dict, Any
 from app.services.finance_math import calculate_npv, calculate_irr, calculate_payback
 from app.services.market_data import get_market_rates
 
-def run_project_viability_agent(state: dict) -> dict:
+def run_project_viability_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
+    Corporate Standard Docstring: run_project_viability_agent
     Project Viability Agent.
     Analisa a viabilidade financeira de projetos operacionais/corporativos.
     Calcula NPV, IRR e Payback (simples e descontado) com base na taxa de atratividade (WACC).

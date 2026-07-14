@@ -1,8 +1,10 @@
 import logging
+from typing import Dict, Any
 from app.services.finance_math import calculate_cap_rate, calculate_cash_on_cash
 
-def run_real_estate_agent(state: dict) -> dict:
+def run_real_estate_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
+    Corporate Standard Docstring: run_real_estate_agent
     Real Estate Rental Agent.
     Calcula Cap Rate, NOI, Cash-on-Cash Return e Gross Yield para ativos do tipo 'real_estate'.
     Aplica fallbacks para preenchimento de campos incompletos.

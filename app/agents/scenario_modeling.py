@@ -1,8 +1,10 @@
 import logging
+from typing import Dict, Any
 from app.services.finance_math import run_monte_carlo
 
-def run_scenario_modeling_agent(state: dict) -> dict:
+def run_scenario_modeling_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
+    Corporate Standard Docstring: run_scenario_modeling_agent
     Scenario Modeling Agent.
     Executa a simulação Monte Carlo para cada ativo analisado no estado.
     Armazena métricas estatísticas detalhadas de distribuição de risco (p10, p50, p90, loss_probability).

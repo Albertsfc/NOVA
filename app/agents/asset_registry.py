@@ -4,8 +4,9 @@ from typing import Dict, Any, List
 from sqlalchemy import text
 from app.database.db_manager import engine
 
-def run_asset_registry(state: dict) -> dict:
+def run_asset_registry(state: Dict[str, Any]) -> Dict[str, Any]:
     """
+    Corporate Standard Docstring: run_asset_registry
     Asset Registry Agent.
     Recupera ativos persistidos no banco de dados SQLite com base nos ids fornecidos.
     Se o payload contiver 'temporary_assets' (oportunidades passadas dinamicamente no request),
