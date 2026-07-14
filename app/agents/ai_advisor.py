@@ -1,16 +1,29 @@
 import logging
 import json
+from typing import Dict, Any, List
+from pydantic import BaseModel, Field
 from app.config import settings
+
+class AdvisorResponse(BaseModel):
+    """
+    Corporate Standard Schema: AdvisorResponse
+    Garante o parsing estruturado rigoroso da saída do LLM.
+    """
+    recommendation: str = Field(
+        ..., 
+        description="Narrativa detalhada e justificada em Markdown gerada pelo Advisor financeiro."
+    )
 
 def run_ai_advisor_agent(state: dict) -> dict:
     """
-    AI Investment Advisor Agent.
+    Corporate Standard Docstring: run_ai_advisor_agent
+    AI Investment Advisor Agent com mitigação de alucinação (Structured Parsing).
     Gera uma narrativa detalhada em linguagem natural (português do Brasil) explicando a decisão.
     Compara os ativos com base em liquidez, retorno e volatilidade.
-    Se a chave ANTHROPIC_API_KEY estiver disponível, usa a API Claude; caso contrário,
-    recorre a um gerador heurístico offline local altamente refinado.
+    Se a chave ANTHROPIC_API_KEY estiver disponível, usa a API Claude com Pydantic;
+    caso contrário, recorre a um gerador heurístico offline local altamente refinado.
     """
-    logging.info("[AI Advisor Agent] Iniciando geração de recomendação.")
+    logging.info("[AI Advisor Agent] Iniciando geração de recomendação estruturada.")
     
     ranking = state.get("ranking", [])
     simulations = state.get("simulations", {})
@@ -33,7 +46,7 @@ def run_ai_advisor_agent(state: dict) -> dict:
                 model_name=settings.LLM_MODEL,
                 temperature=settings.LLM_TEMPERATURE,
                 max_tokens=settings.LLM_MAX_TOKENS
-            )
+            ).with_structured_output(AdvisorResponse)
             
             system_prompt = (
                 "Você é o NOVA (Net Asset & Opportunity Valuation Agent), um consultor financeiro de elite "
@@ -73,8 +86,8 @@ def run_ai_advisor_agent(state: dict) -> dict:
             ]
             
             response = chat.invoke(messages)
-            state["recommendation"] = response.content.strip()
-            logging.info("[AI Advisor Agent] Narrativa gerada com sucesso via Claude.")
+            state["recommendation"] = response.recommendation.strip()
+            logging.info("[AI Advisor Agent] Narrativa estruturada gerada com sucesso via Claude e Pydantic.")
             return state
             
         except Exception as e:
@@ -86,8 +99,9 @@ def run_ai_advisor_agent(state: dict) -> dict:
         
     return state
 
-def generate_heuristic_recommendation(ranking: list, simulations: dict, query: str) -> str:
+def generate_heuristic_recommendation(ranking: List[Dict[str, Any]], simulations: Dict[int, Dict[str, Any]], query: str) -> str:
     """
+    Corporate Standard Docstring: generate_heuristic_recommendation
     Fallback Offline para o Advisor.
     Gera um relatório financeiro rico e estruturado em PT-BR a partir de lógica heurística,
     garantindo que o usuário receba uma análise profissional mesmo sem chaves de API externas.
