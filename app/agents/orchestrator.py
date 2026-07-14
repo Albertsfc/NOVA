@@ -1,6 +1,6 @@
 import logging
 import json
-from typing import TypedDict, List, Dict, Any, Optional
+from typing import TypedDict, List, Dict, Any, Optional, Callable
 from langgraph.graph import StateGraph, END
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -27,18 +27,34 @@ class NOVAState(TypedDict):
     recommendation: str
     errors: List[str]
 
+def safe_node(func: Callable[[NOVAState], dict]) -> Callable[[NOVAState], dict]:
+    """
+    Corporate Standard Docstring: safe_node
+    Decorador para execução segura de nós do LangGraph.
+    Captura exceções para impedir colapso do StateGraph, registrando o erro em state["errors"].
+    """
+    def wrapper(state: NOVAState) -> dict:
+        try:
+            return func(state)
+        except Exception as e:
+            error_msg = f"Error in node {func.__name__}: {str(e)}"
+            logging.error(error_msg)
+            errors = state.get("errors", []) + [error_msg]
+            return {"errors": errors}
+    return wrapper
+
 def create_nova_graph() -> StateGraph:
     """Cria e compila o StateGraph para o pipeline do NOVA."""
     workflow = StateGraph(NOVAState)
     
-    # Adicionando os nós correspondentes aos sub-agentes
-    workflow.add_node("asset_registry", run_asset_registry)
-    workflow.add_node("real_estate", run_real_estate_agent)
-    workflow.add_node("fixed_income", run_fixed_income_agent)
-    workflow.add_node("project_viability", run_project_viability_agent)
-    workflow.add_node("scenario_modeling", run_scenario_modeling_agent)
-    workflow.add_node("comparative_decision", run_comparative_decision_agent)
-    workflow.add_node("ai_advisor", run_ai_advisor_agent)
+    # Adicionando os nós correspondentes aos sub-agentes com safe_node
+    workflow.add_node("asset_registry", safe_node(run_asset_registry))
+    workflow.add_node("real_estate", safe_node(run_real_estate_agent))
+    workflow.add_node("fixed_income", safe_node(run_fixed_income_agent))
+    workflow.add_node("project_viability", safe_node(run_project_viability_agent))
+    workflow.add_node("scenario_modeling", safe_node(run_scenario_modeling_agent))
+    workflow.add_node("comparative_decision", safe_node(run_comparative_decision_agent))
+    workflow.add_node("ai_advisor", safe_node(run_ai_advisor_agent))
     
     # Definindo o fluxo sequencial estrito do pipeline
     workflow.set_entry_point("asset_registry")
@@ -69,66 +85,64 @@ def save_comparison_to_db(state: NOVAState) -> Optional[int]:
     
     logging.info("[Orchestrator DB] Salvando histórico de comparação no SQLite.")
     
-    db: Session = SessionLocal()
     comparison_id = None
-    try:
-        # 1. Insere histórico na tabela comparison_history
-        result = db.execute(
-            text("""
-                INSERT INTO comparison_history (query_text, compared_asset_ids, ranking_json, advisor_narrative)
-                VALUES (:query_text, :compared_asset_ids, :ranking_json, :advisor_narrative)
-                RETURNING id
-            """),
-            {
-                "query_text": query_text,
-                "compared_asset_ids": compared_ids_str,
-                "ranking_json": ranking_json,
-                "advisor_narrative": advisor_narrative
-            }
-        )
-        row = result.fetchone()
-        if row:
-            comparison_id = row[0]
-            
-        # 2. Persiste os resultados de simulação individual
-        for asset_id, sim in state.get("simulations", {}).items():
-            # ativos temporários têm IDs negativos, não relacionamos com tabela assets no foreign key se for menor que 0
-            db_asset_id = asset_id if asset_id > 0 else None
-            
-            # Converte parâmetros específicos do Monte Carlo
-            params = {
-                "asset_type": sim.get("asset_type"),
-                "mean_return": sim.get("mean_return"),
-                "std_dev": sim.get("std_dev")
-            }
-            metrics = {
-                "p10": sim.get("p10_return"),
-                "p50": sim.get("p50_return"),
-                "p90": sim.get("p90_return"),
-                "loss_probability": sim.get("loss_probability"),
-                "raw_distribution": sim.get("raw_distribution")
-            }
-            
-            db.execute(
+    with SessionLocal() as db:
+        try:
+            # 1. Insere histórico na tabela comparison_history
+            result = db.execute(
                 text("""
-                    INSERT INTO simulation_results (asset_id, simulation_type, parameters_json, metrics_json)
-                    VALUES (:asset_id, 'monte_carlo', :params_json, :metrics_json)
+                    INSERT INTO comparison_history (query_text, compared_asset_ids, ranking_json, advisor_narrative)
+                    VALUES (:query_text, :compared_asset_ids, :ranking_json, :advisor_narrative)
+                    RETURNING id
                 """),
                 {
-                    "asset_id": db_asset_id,
-                    "params_json": json.dumps(params),
-                    "metrics_json": json.dumps(metrics)
+                    "query_text": query_text,
+                    "compared_asset_ids": compared_ids_str,
+                    "ranking_json": ranking_json,
+                    "advisor_narrative": advisor_narrative
                 }
             )
-            
-        db.commit()
-        logging.info(f"[Orchestrator DB] Comparação persistida com sucesso. ID histórico: {comparison_id}")
-    except Exception as e:
-        db.rollback()
-        logging.error(f"[Orchestrator DB] Falha ao persistir comparação no banco: {e}")
-        raise e
-    finally:
-        db.close()
+            row = result.fetchone()
+            if row:
+                comparison_id = row[0]
+                
+            # 2. Persiste os resultados de simulação individual
+            for asset_id, sim in state.get("simulations", {}).items():
+                # ativos temporários têm IDs negativos, não relacionamos com tabela assets no foreign key se for menor que 0
+                db_asset_id = asset_id if asset_id > 0 else None
+                
+                # Converte parâmetros específicos do Monte Carlo
+                params = {
+                    "asset_type": sim.get("asset_type"),
+                    "mean_return": sim.get("mean_return"),
+                    "std_dev": sim.get("std_dev")
+                }
+                metrics = {
+                    "p10": sim.get("p10_return"),
+                    "p50": sim.get("p50_return"),
+                    "p90": sim.get("p90_return"),
+                    "loss_probability": sim.get("loss_probability"),
+                    "raw_distribution": sim.get("raw_distribution")
+                }
+                
+                db.execute(
+                    text("""
+                        INSERT INTO simulation_results (asset_id, simulation_type, parameters_json, metrics_json)
+                        VALUES (:asset_id, 'monte_carlo', :params_json, :metrics_json)
+                    """),
+                    {
+                        "asset_id": db_asset_id,
+                        "params_json": json.dumps(params),
+                        "metrics_json": json.dumps(metrics)
+                    }
+                )
+                
+            db.commit()
+            logging.info(f"[Orchestrator DB] Comparação persistida com sucesso. ID histórico: {comparison_id}")
+        except Exception as e:
+            db.rollback()
+            logging.error(f"[Orchestrator DB] Falha ao persistir comparação no banco: {e}")
+            raise e
         
     return comparison_id
 
