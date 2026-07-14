@@ -1,8 +1,9 @@
 import sqlite3
 import logging
 from pathlib import Path
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy import create_engine, event, Engine
+from sqlalchemy.orm import sessionmaker, declarative_base, Session
+from typing import Generator
 from app.config import settings
 
 # Garante o caminho absoluto para o banco SQLite local do NOVA
@@ -16,6 +17,19 @@ engine = create_engine(
     f"sqlite:///{db_file_path}",
     connect_args={"check_same_thread": False}
 )
+
+@event.listens_for(Engine, "connect")
+def set_sqlite_pragma(dbapi_connection: sqlite3.Connection, connection_record: object) -> None:
+    """
+    Corporate Standard Docstring: set_sqlite_pragma
+    Configura pragmas de concorrência e resiliência (WAL e Normal Synchronous).
+    Permite leituras enquanto gravações estão ocorrendo sem database locks agressivos.
+    """
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -41,9 +55,13 @@ def init_db():
         logging.error(f"schema.sql não encontrado no caminho {schema_path}")
         raise FileNotFoundError(f"schema.sql não encontrado")
 
-def get_db():
-    """Dependency para injeção de sessão nos endpoints do FastAPI."""
-    db = SessionLocal()
+def get_db() -> Generator[Session, None, None]:
+    """
+    Corporate Standard Docstring: get_db
+    Dependency para injeção de sessão nos endpoints do FastAPI.
+    Garante o fechamento da sessão de forma segura.
+    """
+    db: Session = SessionLocal()
     try:
         yield db
     finally:
